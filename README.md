@@ -1,9 +1,9 @@
 # U.S.-Credit-Card-Dataset
 This repository includes analysis on various classification models of a dataset of U.S. credit card measures to predict the likelihood of an individual paying off a loan, including, but not limited to:
-  - k-Nearest Neighbor  
-  - K-Means Clustering  
-  - SVM    
-  - Other methods  
+   - k-Nearest Neighbor (kNN)  
+   - K-Means Clustering  
+   - Support Vector Machine (SVM)    
+   - Other methods  
   
 The repository is organized as follows:  
 ### Code   
