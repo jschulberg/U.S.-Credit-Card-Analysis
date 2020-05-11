@@ -150,6 +150,10 @@ kernel_accuracy_ordered <- kernel_accuracy_df %>%
 kernel_accuracy_ordered$accuracy <- as.numeric(as.character(kernel_accuracy_ordered$accuracy))
 kernel_accuracy_ordered$accuracy <- 100*round(kernel_accuracy_ordered$accuracy, 2)
 
+# Save our visualization to the correct working directory
+setwd("C:/Users/jschulberg/Documents/Data Analytics Blog/Blog 4 - US Credit Card/U.S.-Credit-Card-Dataset/Viz/")
+jpeg(file = "SVM Accuracy of Different Kernels.jpeg") # Name of the file for the viz we'll save
+
 # Let's plot our results to better visualize everything
 ggplot(kernel_accuracy_ordered,
        # order by accuracy
@@ -159,7 +163,7 @@ ggplot(kernel_accuracy_ordered,
   # Add the text labels in for p-values so it's easier to read
   geom_label(label = kernel_accuracy_ordered$accuracy) +
   # Change the theme to minimal
-  theme_minimal() +
+  theme_classic() +
   # Let's change the names of the axes and title
   xlab("Kernel") +
   ylab("Accuracy (%)") +
@@ -168,3 +172,68 @@ ggplot(kernel_accuracy_ordered,
   coord_flip(ylim = c(50, 100)) +
   # center the title
   theme(plot.title = element_text(hjust = 0.5))
+
+dev.off()
+
+# Let's play around with other values of C
+# Start by defining a vector of options that we can try. Let's first build it with
+# every value between 0 and 1, separated by an interval of .05
+lambda <- seq(0, 1, .1)
+
+# Let's also add every 100 units in between 100 and 10000. The code already takes
+# forever to run so I'm going to hold off on this.
+lambda <- append(lambda, seq(100, 2000, 500))
+lambda <- append(lambda, seq(10000, 100000, 10000))
+
+
+# We'll initialize an empty vector that we can later fill with the names of
+# the kernels as well as the accompanying accuracy of each kernel
+lambda_accuracy <- c()
+
+# Run a for loop through all the kernels above
+for (i in seq_along(lambda)) {
+  # Set the kernel in the ksvm to 'i'
+  lambda_model <- ksvm(as.matrix(data_cc[,1:10]), data_cc[,11], type = "C-svc",
+                       kernel = "vanilladot", C = i, scaled = TRUE)
+  
+  lambda_pred <- predict(lambda_model, data_cc[, 1:10])
+  # Find the accuracy of our predictions
+  accuracy <- mean(lambda_pred == data_cc$R1)
+  print(lambda_model@param)
+  print(accuracy)
+  lambda_accuracy[i] <- accuracy
+}
+
+# With the real data
+lambda_accuracy <- lambda_accuracy %>%
+  as.data.frame() %>%
+  cbind(lambda)
+
+# rename the columns
+names(lambda_accuracy)[1] <- "accuracy"
+names(lambda_accuracy)[2] <- "C_Values"
+
+jpeg(file = "SVM Different C Values.jpeg") # Name of the file for the viz we'll save
+
+# Visualization time
+ggplot(lambda_accuracy,
+       # order by accuracy
+       aes(x = reorder(C_Values, accuracy), y = accuracy, group = 1)) +
+  # Let's make it a bar graph and change the color
+  geom_col(fill = "slateblue2", lwd = 1) +
+  # Change the theme to minimal
+  theme_classic() +
+  # Let's change the names of the axes and title
+  xlab("C Values") +
+  ylab("Accuracy (%)") +
+  labs(title = "Accuracy of Different C Values \n in SVM Method",
+       subtitle = "The dataset used is the Credit Card dataset") +
+  # format our title and subtitle
+  theme(plot.title = element_text(hjust = 0, color = "black"),
+        plot.subtitle = element_text(color = "dark gray", size = 10)) +
+  coord_flip()
+
+dev.off()
+
+# All of these give around the same c-value so changing the c value really doesn't affect our work.
+
