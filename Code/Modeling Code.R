@@ -10,9 +10,7 @@
 # and modeling techniques to do so, including, but not limited to:
 
 #   - k-Nearest Neighbor (kNN)  
-#   - K-Means Clustering  
 #   - Support Vector Machine (SVM)    
-#   - Other methods 
 
 
 #######################################################################
@@ -49,12 +47,77 @@ summary(data_cc)
 # R1: +,-         (class attribute)
 # data$R1 <- as.factor(data$R1)
 
-data_cc$R1 <- as.factor(data_cc$R1)
-
 # What does our response variable look like?
 table(data_cc$R1)
 round(prop.table(table(data_cc$R1)), 2) # 55% of the observations are 0, and 45% are 1
 
+
+########################################################################
+# k-Nearest Neighbors --------------------------------------------------
+######################################################################## 
+# In the first section, we'll use a simple kNN model to predict on our 
+# credit card data.
+# First let's set the seed to ensure proper randomization/reproducibility
+set.seed(123)
+
+# Let's split the data into 80% train/validate and 20% test. We'll do this by using the sample func
+ids <- sample(1:nrow(data_cc), round(nrow(data_cc)*.8), replace = F)
+train <- data_cc[ids, ]
+test <- data_cc[-ids, ]
+
+# Now that we've split the data accordingly, let's run the train.kknn function on the train set which
+# automatically uses cross-fold validation. We'll start by running this on kmax = 5.
+kknn_model1 <- train.kknn(R1 ~ ., train, kmax = 50, scale = TRUE,  kernel = "optimal") 
+
+# Let's calculate our predictions. We'll start by initializing an empty vector to hold our accuracy results
+# for up to 40-Nearest Neighbors
+kknn_accuracy <- array(0, 40)
+
+# Calculate prediction quality for the 100 different k groups we created.
+for (k in 1:40) {
+  # Create a vector of our predictions from the model for each k value. Round these off to 0 or 1.
+  predicted <- as.integer(fitted(kknn_model1)[[k]][1:nrow(train)] + 0.5)
+  kknn_accuracy[k] <- mean(predicted == train$R1)
+  print(kknn_accuracy)
+}
+
+# Let's plot our results. First let's create a data frame we can use for predictions.
+k_values <- seq(1, 40)
+
+# Bring our k values in so we have one data frame to work with.
+k_df <- kknn_accuracy %>%
+  as.data.frame() %>%
+  cbind(k_values)
+
+names(k_df)[1] <- "accuracy"
+names(k_df)[2] <- "neighbors"
+
+# Which k fold group had the highest accuracy?
+k_df[k_df$accuracy == max(k_df$accuracy), ]
+
+# Save our visualization to the correct working directory
+setwd("C:/Users/jschulberg/Documents/Data Analytics Blog/Blog 4 - US Credit Card/U.S.-Credit-Card-Dataset/Viz/")
+jpeg(file = "kNN Accuracy Viz.jpeg") # Name of the file for the viz we'll save
+
+# Visualization time
+ggplot(k_df,
+       # order by accuracy
+       aes(x = neighbors, y = 100*accuracy, group = 1)) +
+  # Let's make it a bar graph and change the color
+  geom_line(color = "slateblue2", lwd = 1) +
+  geom_point(color = "slateblue4") +
+  # Change the theme to minimal
+  theme_minimal() +
+  # Let's change the names of the axes and title
+  xlab("Number of Neighbors") +
+  ylab("Accuracy (%)") +
+  labs(title = "Accuracy of Different K Values\nin kNN Method",
+       subtitle = "The dataset used is the Credit Card dataset") +
+  # format our title and subtitle
+  theme(plot.title = element_text(hjust = 0, color = "black"),
+        plot.subtitle = element_text(color = "dark gray", size = 10))
+
+dev.off()
 
 ########################################################################
 # Support Vector Machine -----------------------------------------------
@@ -62,8 +125,8 @@ round(prop.table(table(data_cc$R1)), 2) # 55% of the observations are 0, and 45%
 # In the first section, we'll use a simple SVM model to predict on our 
 # credit card data.
 
-# Set the seed to ensure proper randomization/reproducibility
-set.seed(123)
+# Convert our response variable to a factor
+data_cc$R1 <- as.factor(data_cc$R1)
 
 # Let's try our first Support Vector Machine model.
 model1 <- ksvm(as.matrix(data_cc[, 1:10]), # independent variables
@@ -150,8 +213,7 @@ kernel_accuracy_ordered <- kernel_accuracy_df %>%
 kernel_accuracy_ordered$accuracy <- as.numeric(as.character(kernel_accuracy_ordered$accuracy))
 kernel_accuracy_ordered$accuracy <- 100*round(kernel_accuracy_ordered$accuracy, 2)
 
-# Save our visualization to the correct working directory
-setwd("C:/Users/jschulberg/Documents/Data Analytics Blog/Blog 4 - US Credit Card/U.S.-Credit-Card-Dataset/Viz/")
+
 jpeg(file = "SVM Accuracy of Different Kernels.jpeg") # Name of the file for the viz we'll save
 
 # Let's plot our results to better visualize everything
@@ -236,4 +298,6 @@ ggplot(lambda_accuracy,
 dev.off()
 
 # All of these give around the same c-value so changing the c value really doesn't affect our work.
+ 
+
 
